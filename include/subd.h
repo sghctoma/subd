@@ -1,6 +1,6 @@
 /**
  * @file subd.h
- * @brief Subd consists of a few convenience wrappers around the libdbus API.
+ * @brief Subd is a small set of convenience wrappers around the libdbus API.
  * @author sghctoma
  * @date 15 October 2018
  *
