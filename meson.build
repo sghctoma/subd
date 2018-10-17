@@ -16,6 +16,8 @@ add_project_arguments('-Wno-missing-braces', language: 'c')
 cc = meson.get_compiler('c')
 prefix = get_option('prefix')
 
+subdir('include')
+
 lib_subd = library(
 	meson.project_name(),
 	files([
