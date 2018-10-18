@@ -13,6 +13,8 @@ project(
 add_project_arguments('-Wno-unused-parameter', language: 'c')
 add_project_arguments('-Wno-missing-braces', language: 'c')
 
+dbus = dependency('dbus-1')
+
 cc = meson.get_compiler('c')
 prefix = get_option('prefix')
 libdir = get_option('libdir')
@@ -27,7 +29,7 @@ lib_subd = library(
 		'subd-watch.c',
 		'list.c',
 	]),
-	dependencies: dependency('dbus-1'),
+	dependencies: dbus,
 	include_directories: include_directories('include'),
 	install: true,
 )
@@ -41,7 +43,7 @@ endif
 pkgconfig = import('pkgconfig')
 pkgconfig.generate(
 	lib_subd,
-	libraries: lib_subd,
+	libraries: [lib_subd, dbus],
 	filebase: meson.project_name(),
 	version: meson.project_version(),
 	description: 'A small set of convenience wrappers around dbus-1',
