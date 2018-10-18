@@ -39,7 +39,7 @@ struct pollfd;
  * @param error Will contain error information in case of failure.
  * @return Pointer to created the DBus connection, or NULL.
  */
-DBusConnection *subd_open_session(const char* service_name, DBusError *error);
+DBusConnection *subd_open_session(const char *service_name, DBusError *error);
 
 /**
  * @brief Sends a signal message.
