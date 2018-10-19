@@ -26,7 +26,6 @@
 #include <semaphore.h>
 #include <stdbool.h>
 
-struct list_t;
 struct pollfd;
 
 /**
