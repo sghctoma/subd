@@ -35,9 +35,6 @@ bool subd_emit_signal(DBusConnection *connection, const char *path,
 bool subd_reply_method_return(DBusConnection *connnection, DBusMessage *message,
 	DBusError *error, ...);
 
-bool subd_reply_empty_str_method_return(DBusConnection *connection,
-	DBusMessage *message, DBusError *error);
-
 bool subd_message_read(DBusMessageIter *iter, DBusError *error, ...);
 ```
 

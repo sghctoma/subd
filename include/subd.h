@@ -79,20 +79,6 @@ bool subd_reply_method_return(DBusConnection *connnection, DBusMessage *message,
 	DBusError *error, ...);
 
 /**
- * @brief Sends an empty reply to a method call.
- *
- * This function creates an empty string reply to a given @p message, and sends
- * it.
- *
- * @param connection A pointer to the DBus connection.
- * @param message The message to reply to.
- * @param error Will contain error information in case of failure.
- * @return A @c bool that represents success or failure.
- */
-bool subd_reply_empty_str_method_return(DBusConnection *connection,
-	DBusMessage *message, DBusError *error);
-
-/**
  * @brief Reads values of basic types.
  *
  * This function uses a message iterator to read the message. It can be used to

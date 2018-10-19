@@ -73,13 +73,6 @@ error:
 	return false;
 }
 
-bool subd_reply_empty_str_method_return(DBusConnection *conn, DBusMessage *msg,
-		DBusError *error) {
-	const char *empty = "";
-	return subd_reply_method_return(conn, msg, error,
-		DBUS_TYPE_STRING, &empty, DBUS_TYPE_INVALID);
-}
-
 bool subd_message_read(DBusMessageIter *iter, DBusError *error, ...) {
 	va_list ap;
 	va_start(ap, error);
