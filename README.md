@@ -1,5 +1,7 @@
 # subd
 
+**WARNING**: this is really WIP, anything could change, please don't use it yet!
+
 Subd is a collection of helper functions that make using dbus-1 more convenient.
 For me, at least, but I hope others will find it useful as well :) It is by no
 means a complete wrapper around libdbus, it just provides some functions that
@@ -27,15 +29,15 @@ I needed to work with so far:
 ### Miscellaneous functions
 
 ```c
-DBusConnection *subd_open_session(const char *service_name, DBusError *error);
+DBusConnection *subd_open_session(const char *service_name, DBusError *err);
 
-bool subd_emit_signal(DBusConnection *connection, const char *path,
-	const char *interface, const char *name, DBusError *error,  ...);
+dbus_bool_t subd_emit_signal(DBusConnection *conn, const char *path,
+	const char *interface, const char *name, DBusError *err,  ...);
 
-bool subd_reply_method_return(DBusConnection *connnection, DBusMessage *message,
-	DBusError *error, ...);
+dbus_bool_t subd_reply_method_return(DBusConnection *conn, DBusMessage *msg,
+	DBusError *err, ...);
 
-bool subd_message_read(DBusMessageIter *iter, DBusError *error, ...);
+dbus_bool_t subd_message_read(DBusMessageIter *iter, DBusError *err, ...);
 ```
 
 ### Functions and data structures that deal with watches
@@ -43,14 +45,14 @@ bool subd_message_read(DBusMessageIter *iter, DBusError *error, ...);
 ```c
 struct subd_watches {
 	struct pollfd *fds;
-	struct DBusWatch **watches;
+	DBusWatch **watches;
 	int capacity;	
 	int length;
 	sem_t mutex;
 };
 
-struct subd_watches *subd_init_watches(struct DBusConnection *connection,
-	struct pollfd *fds, int size, DBusError *error);
+struct subd_watches *subd_init_watches(DBusConnection *conn, struct pollfd *fds,
+	int size, DBusError *err);
 ```
 
 ### Functions and data structures that deal with interface implementation
@@ -74,7 +76,7 @@ struct subd_member {
 	union {
 		struct {
 			const char *name;
-			bool (*handler)(DBusConnection *, DBusMessage *, void *, DBusError *);
+			dbus_bool_t (*handler)(DBusConnection *, DBusMessage *, void *, DBusError *);
 			const char *input_signature;
 			const char *output_signature;
 		} m;
@@ -91,9 +93,9 @@ struct subd_member {
 	};
 };
 
-bool subd_add_object_vtable(DBusConnection *connection, const char *path,
+dbus_bool_t subd_add_object_vtable(DBusConnection *conn, const char *path,
 	const char *interface, const struct subd_member *members, void *userdata,
-	DBusError *error);
+	DBusError *err);
 ```
 
 For a detailed description of what each function does, please refer to the

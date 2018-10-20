@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -102,8 +103,8 @@ static const char *generate_introspection_data(struct path *path) {
 	return path->introspection_data;
 }
 
-static bool handle_introspect(DBusConnection *conn, DBusMessage *msg,
-		void *data, DBusError *error) {
+static dbus_bool_t handle_introspect(DBusConnection *conn, DBusMessage *msg,
+		void *data, DBusError *err) {
 	// Find the path the message was sent to, so we can access its list of
 	// implemented interfaces.
 	const char *path_name = dbus_message_get_path(msg);
@@ -118,22 +119,22 @@ static bool handle_introspect(DBusConnection *conn, DBusMessage *msg,
 	if (path == NULL) {
 		// Something is seriously weird here. Path was not found, but then how
 		// was the method handler called??
-		dbus_set_error(error, DBUS_ERROR_INVALID_ARGS,
+		dbus_set_error(err, DBUS_ERROR_INVALID_ARGS,
 			"Path was not found in paths list.");
-		return false;
+		return FALSE;
 	}
 
 	if (path->introspection_data == NULL) {
 		// This shouldn't really happen, introspection data is generated when
 		// the vtable is registered.
 		if (generate_introspection_data(path) == NULL) {
-			dbus_set_error(error, DBUS_ERROR_NO_MEMORY,
+			dbus_set_error(err, DBUS_ERROR_NO_MEMORY,
 				"Introspection data could not be generated.");
-			return false;
+			return FALSE;
 		}
 	}
 
-	return subd_reply_method_return(conn, msg, error,
+	return subd_reply_method_return(conn, msg, err,
 		DBUS_TYPE_STRING, &path->introspection_data,
 		DBUS_TYPE_INVALID);
 }
@@ -183,11 +184,11 @@ static bool call_method(const struct subd_member *member, DBusConnection *conn,
  * to find the called method. When the method is found, its handler function is
  * called with "data" set to "userdata->userdata".
  */
-static DBusHandlerResult vtable_dispatch(DBusConnection *connection,
-		DBusMessage *message, void *userdata) {
+static DBusHandlerResult vtable_dispatch(DBusConnection *conn, DBusMessage *msg,
+		void *userdata) {
 	struct vtable_userdata *data = userdata;
-	const char *interface_name = dbus_message_get_interface(message);
-	const char *member_name = dbus_message_get_member(message);
+	const char *interface_name = dbus_message_get_interface(msg);
+	const char *member_name = dbus_message_get_member(msg);
 	if (interface_name == NULL || member_name == NULL) {
 		// something is wrong, no need to try with other handlers
 		return DBUS_HANDLER_RESULT_HANDLED;
@@ -200,7 +201,7 @@ static DBusHandlerResult vtable_dispatch(DBusConnection *connection,
 			const struct subd_member *member =
 				find_member(interface->members, member_name);
 			if (member != NULL) {
-				call_method(member, connection, message, data->userdata);
+				call_method(member, conn, msg, data->userdata);
 				return DBUS_HANDLER_RESULT_HANDLED;
 			}
 		}
@@ -214,9 +215,9 @@ static const DBusObjectPathVTable vtable = {
 	.unregister_function = NULL,
 };
 
-bool subd_add_object_vtable(DBusConnection *connection, const char *path_name,
-		const char *interface, const struct subd_member *members, void *userdata,
-		DBusError *error) {
+dbus_bool_t subd_add_object_vtable(DBusConnection *conn, const char *path_name,
+		const char *interface, const struct subd_member *members,
+		void *userdata, DBusError *err) {
 	if (paths == NULL) {
 		paths = list_create();
 	}
@@ -244,8 +245,8 @@ bool subd_add_object_vtable(DBusConnection *connection, const char *path_name,
 		interfaces = list_create();
 		struct interface *new_interface = malloc(sizeof(struct interface));
 		if (interface == NULL) {
-			dbus_set_error(error, DBUS_ERROR_NO_MEMORY, NULL);
-			return false;
+			dbus_set_error(err, DBUS_ERROR_NO_MEMORY, NULL);
+			return FALSE;
 		}
 		new_interface->name = strdup("org.freedesktop.DBus.Introspectable");
 		new_interface->members = introspectable_members;
@@ -255,8 +256,8 @@ bool subd_add_object_vtable(DBusConnection *connection, const char *path_name,
 		// list of paths, ...
 		struct path *new_path = malloc(sizeof(struct path));
 		if (new_path == NULL) {
-			dbus_set_error(error, DBUS_ERROR_NO_MEMORY, NULL);
-			return false;
+			dbus_set_error(err, DBUS_ERROR_NO_MEMORY, NULL);
+			return FALSE;
 		}
 		new_path->path = strdup(path_name);
 		new_path->interfaces = interfaces;
@@ -270,14 +271,14 @@ bool subd_add_object_vtable(DBusConnection *connection, const char *path_name,
 		// traverse, and what userdata to pass to the actual handler functions.
 		struct vtable_userdata *data = malloc(sizeof(struct vtable_userdata));
 		if (data == NULL) {
-			dbus_set_error(error, DBUS_ERROR_NO_MEMORY, NULL);
-			return false;
+			dbus_set_error(err, DBUS_ERROR_NO_MEMORY, NULL);
+			return FALSE;
 		}
 		data->interfaces = interfaces;
 		data->userdata = userdata;
-		if (!dbus_connection_try_register_object_path(connection, path_name,
-				&vtable, data, error)) {
-			return false;
+		if (!dbus_connection_try_register_object_path(conn, path_name,
+				&vtable, data, err)) {
+			return FALSE;
 		}
 	}
 
@@ -287,8 +288,8 @@ bool subd_add_object_vtable(DBusConnection *connection, const char *path_name,
 	// Append the new interface to the path's interface list.
 	struct interface *new_interface = malloc(sizeof(struct interface));
 	if (new_interface == NULL) {
-		dbus_set_error(error, DBUS_ERROR_NO_MEMORY, NULL);
-		return false;
+		dbus_set_error(err, DBUS_ERROR_NO_MEMORY, NULL);
+		return FALSE;
 	}
 	new_interface->name = strdup(interface);
 	new_interface->members = members;
@@ -297,5 +298,5 @@ bool subd_add_object_vtable(DBusConnection *connection, const char *path_name,
 	// (Re)generate introspection XML for this path.
 	generate_introspection_data(path);
 
-	return true;
+	return TRUE;
 }

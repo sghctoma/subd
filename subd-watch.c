@@ -77,8 +77,8 @@ static void toggle_watch(DBusWatch *watch, void *data) {
 	}
 }
 
-struct subd_watches *subd_init_watches(struct DBusConnection *connection,
-		struct pollfd *fds, int size, DBusError *error) {
+struct subd_watches *subd_init_watches(struct DBusConnection *conn,
+		struct pollfd *fds, int size, DBusError *err) {
 	const char *error_code = NULL;
 
 	// Initialize the watches structure.
@@ -122,8 +122,8 @@ struct subd_watches *subd_init_watches(struct DBusConnection *connection,
 	// Register the add, remove, and toggle functions.
 	// NOTE: Can't use the free_data_function argument to automatically free
 	// watches when connection finalizes, because sometimes it does not work.
-	if (!dbus_connection_set_watch_functions(connection, add_watch,
-			remove_watch, toggle_watch, watches, NULL)) {
+	if (!dbus_connection_set_watch_functions(conn, add_watch, remove_watch,
+			toggle_watch, watches, NULL)) {
 		error_code = DBUS_ERROR_NO_MEMORY;
 		goto error;
 	}
@@ -139,7 +139,7 @@ error:
 			free(watches->watches);
 		}
 	}
-	dbus_set_error(error, error_code, NULL);
+	dbus_set_error(err, error_code, NULL);
 	return NULL;
 }
 

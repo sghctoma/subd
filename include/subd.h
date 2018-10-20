@@ -24,7 +24,6 @@
 
 #include <dbus/dbus.h>
 #include <semaphore.h>
-#include <stdbool.h>
 
 struct pollfd;
 
@@ -35,10 +34,10 @@ struct pollfd;
  * bus, and requests the name @p service_name. In case of error, @p error is
  * filled, and @c NULL is returned.
  * @param service_name The requested service name.
- * @param error Will contain error information in case of failure.
+ * @param err Will contain error information in case of failure.
  * @return Pointer to created the DBus connection, or NULL.
  */
-DBusConnection *subd_open_session(const char *service_name, DBusError *error);
+DBusConnection *subd_open_session(const char *service_name, DBusError *err);
 
 /**
  * @brief Sends a signal message.
@@ -48,17 +47,17 @@ DBusConnection *subd_open_session(const char *service_name, DBusError *error);
  * @c dbus_message_append_args (i.e. the message either consists of a list of
  * basic type values, or a fixed-length array of basic type values).
  *
- * @param connection A pointer to the DBus connection.
+ * @param conn A pointer to the DBus connection.
  * @param path The path to the object emitting the signal.
  * @param interface The interface the signal is emitted from.
  * @param name The name of the signal.
- * @param error Will contain error information in case of failure.
+ * @param err Will contain error information in case of failure.
  * @param va_list The fields to construct the signal from.
  * @return A @c bool that represents success or failure.
  * @see https://dbus.freedesktop.org/doc/api/html/group__DBusMessage.html#ga591f3aab5dd2c87e56e05423c2a671d9
  */
-bool subd_emit_signal(DBusConnection *connection, const char *path,
-	const char *interface, const char *name, DBusError *error,  ...);
+dbus_bool_t subd_emit_signal(DBusConnection *conn, const char *path,
+	const char *interface, const char *name, DBusError *err,  ...);
 
 /**
  * @brief Sends a reply to method call.
@@ -67,16 +66,16 @@ bool subd_emit_signal(DBusConnection *connection, const char *path,
  * the variable argument list, and sends it. The same rules apply regarding this
  * list as with @c dbus_message_append_args (i.e. the message either consists of
  * a list of basic type values, or a fixed-length array of basic type values).
- * @param connection A pointer to the DBus connection.
- * @param message The message to reply to.
- * @param error Will contain error information in case of failure.
+ * @param conn A pointer to the DBus connection.
+ * @param msg The message to reply to.
+ * @param err Will contain error information in case of failure.
  * @param va_list The fields to construct the reply from. This variable argument
  *                list should match that of @c dbus_message_append_args.
  * @return A @c bool that represents success or failure.
  * @see https://dbus.freedesktop.org/doc/api/html/group__DBusMessage.html#ga591f3aab5dd2c87e56e05423c2a671d9
  */
-bool subd_reply_method_return(DBusConnection *connnection, DBusMessage *message,
-	DBusError *error, ...);
+dbus_bool_t subd_reply_method_return(DBusConnection *conn, DBusMessage *msg,
+	DBusError *err, ...);
 
 /**
  * @brief Reads values of basic types.
@@ -85,11 +84,11 @@ bool subd_reply_method_return(DBusConnection *connnection, DBusMessage *message,
  * conveniently read multiple basic values from a message, while advancing an
  * iterator, so that reading can be continued later.
  * @param iter The previously initialized message iterator
- * @param error Will contain error information in case of failure.
+ * @param err Will contain error information in case of failure.
  * @param va_list Pointers to basic types to read values into.
  * @return A @c bool that represents success or failure.
  */
-bool subd_message_read(DBusMessageIter *iter, DBusError *error, ...);
+dbus_bool_t subd_message_read(DBusMessageIter *iter, DBusError *err, ...);
 
 /**
  * @brief A storage for DBus waches
@@ -103,7 +102,7 @@ bool subd_message_read(DBusMessageIter *iter, DBusError *error, ...);
  */
 struct subd_watches {
 	struct pollfd *fds;			/**< Array of @c pollfd structs */
-	struct DBusWatch **watches;	/**< Arrah of DBus watches */
+	DBusWatch **watches;		/**< Arrah of DBus watches */
 	int capacity;				/**< Currently allocated size in item number */
 	int length;					/**< Number of currently allocated items */
 	sem_t mutex;				/**< Lock for safe watch addition/removal */
@@ -116,15 +115,15 @@ struct subd_watches {
  * the non-DBus file descriptors passed as @p fds. It also registers the add,
  * remove and toggle functions that will handle automatic file descriptor
  * additions/removals.
- * @param connection A pointer to the DBus connection.
+ * @param conn A pointer to the DBus connection.
  * @param fds Array of non-dbus file descriptors.
  * @param size Size of @p fds
- * @param error Will contain error information in case of failure
+ * @param err Will contain error information in case of failure
  * @return A pointer to the created subd_watches structure, or NULL.
  * @see https://dbus.freedesktop.org/doc/api/html/group__DBusConnection.html#gaebf031eb444b4f847606aa27daa3d8e6
  */
-struct subd_watches *subd_init_watches(struct DBusConnection *connection,
-	struct pollfd *fds, int size, DBusError *error);
+struct subd_watches *subd_init_watches(DBusConnection *conn, struct pollfd *fds,
+	int size, DBusError *err);
 
 /**
  * @brief Handles DBus watches
@@ -132,11 +131,10 @@ struct subd_watches *subd_init_watches(struct DBusConnection *connection,
  * This function should be called from the event loop after a successful @c poll
  * to handle the DBus watches that need to be handled (= the watches whose file
  * descriptor returned an event).
- * @param connection A pointer to the DBus connection.
+ * @param conn A pointer to the DBus connection.
  * @param watches A pointer to the subd_watches structure.
  */
-void subd_process_watches(DBusConnection *connection,
-	struct subd_watches *watches);
+void subd_process_watches(DBusConnection *conn, struct subd_watches *watches);
 
 /**
  * @brief Represents the three DBus member types.
@@ -183,7 +181,7 @@ struct subd_member {
 	union {
 		struct {
 			const char *name;
-			bool (*handler)(DBusConnection *, DBusMessage *, void *, DBusError *);
+			dbus_bool_t (*handler)(DBusConnection *, DBusMessage *, void *, DBusError *);
 			const char *input_signature;
 			const char *output_signature;
 		} m;
@@ -208,17 +206,17 @@ struct subd_member {
  * for all of your interfaces you want vtable handlers for, and register them
  * with DBus using this function. The last element of the array always should be
  * SUBD_MEMBERS_END.
- * @param connection A pointer to the DBus connection.
+ * @param conn A pointer to the DBus connection.
  * @param path The DBus object path to register @p interface to.
  * @param interface The DBus interface that are to be registered to @p path.
  * @param members The members of @p interface.
  * @param userdate Arbitrary data to pass to method handlers.
- * @param error Will contain error information in case of failure.
+ * @param err Will contain error information in case of failure.
  * @return A @c bool that represents success or failure.
  * @see https://dbus.freedesktop.org/doc/api/html/group__DBusConnection.html#ga708b1e108feed18f5775ff404c9dda4b
  */
-bool subd_add_object_vtable(DBusConnection *connection, const char *path,
-	const char *interface, const struct subd_member *members, void *userdata,
-	DBusError *error);
+dbus_bool_t subd_add_object_vtable(DBusConnection *conn, const char *path,
+	const char *interface, const struct subd_member *members,
+	void *userdata, DBusError *err);
 
 #endif
